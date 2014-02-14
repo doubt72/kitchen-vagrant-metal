@@ -1,8 +1,8 @@
 # -*- encoding: utf-8 -*-
 #
-# Author:: Fletcher Nichol (<fnichol@nichol.ca>)
+# Author:: Douglas Triggs (<doug@getchef.com>)
 #
-# Copyright (C) 2012, Fletcher Nichol
+# Copyright (C) 2014, Chef Software, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -25,13 +25,10 @@ module Kitchen
 
   module Driver
 
-    # Vagrant driver for Kitchen. It communicates to Vagrant via the CLI.
+    # Vagrant Metal driver for Kitchen. It communicates to Vagrant using Chef Metal.
     #
-    # @author Fletcher Nichol <fnichol@nichol.ca>
-    #
-    # @todo Vagrant installation check and version will be placed into any
-    #   dependency hook checks when feature is released
-    class Vagrant < Kitchen::Driver::SSHBase
+    # @author Douglas Triggs <doug@getchef.com>
+    class VagrantMetal < Kitchen::Driver::SSHBase
 
       default_config :customize, { :memory => '256' }
       default_config :network, []

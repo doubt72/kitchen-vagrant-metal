@@ -1,8 +1,8 @@
 # -*- encoding: utf-8 -*-
 #
-# Author:: Fletcher Nichol (<fnichol@nichol.ca>)
+# Author:: Douglas Triggs (<doug@getchef.com>)
 #
-# Copyright (C) 2012, Fletcher Nichol
+# Copyright (C) 2014, Chef Software, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -21,6 +21,6 @@ module Kitchen
   module Driver
 
     # Version string for Vagrant Kitchen driver
-    VAGRANT_VERSION = "0.14.1.dev"
+    VAGRANT_METAL_VERSION = "0.1.0.dev"
   end
 end
