@@ -1,6 +1,6 @@
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'kitchen/driver/vagrant_version_metal.rb'
+require 'kitchen/driver/vagrant_metal_version.rb'
 
 Gem::Specification.new do |gem|
   gem.name          = "kitchen-vagrant-metal"
