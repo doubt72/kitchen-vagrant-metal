@@ -69,19 +69,6 @@ module Kitchen
 
 #      no_parallel_for :create, :destroy
 
-      # This is for the run context
-      class KitchenSink
-        def initialize
-          @events = []
-        end
-
-        attr_reader :events
-
-        def method_missing(method, *args)
-          @events << [ method, *args ]
-        end
-      end
-
       def create(state)
         # create_vagrantfile
         run_pre_create_command
@@ -90,38 +77,8 @@ module Kitchen
         # run cmd
         # set_ssh_state(state)
         # TODO: stuff here
-        puts "--"
-        puts config
-        puts config[:provider]
-        info("Working on Vagrant instance #{instance.to_str}.")
-        puts "--"
-        node = Chef::Node.new
-        node.name 'test'
-        node.automatic[:platform] = 'test'
-        node.automatic[:platform_version] = 'test'
-        kitchen_sink = KitchenSink.new
-        run_context = Chef::RunContext.new(node, {},
-          Chef::EventDispatch::Dispatcher.new(kitchen_sink))
-        recipe = Chef::Recipe.new('test', 'test', run_context)
-        box = config[:box]
-        hostname = config[:vm_hostname]
-        box_url = config[:box_url]
-        recipe.instance_eval do
-          vagrant_cluster "#{ENV['HOME']}/machinetest"
 
-          directory "#{ENV['HOME']}/machinetest/repo"
-
-          with_chef_local_server :chef_repo_path => "#{ENV['HOME']}/machinetest/repo"
-
-          vagrant_box box do
-            box_url
-          end
-
-          machine hostname do
-            action :create
-          end
-        end
-        Chef::Runner.new(run_context).converge
+        execute_recipe(:create)
         info("Vagrant instance #{instance.to_str} created.")
       end
 
@@ -149,9 +106,11 @@ module Kitchen
         # @vagrantfile_created = false
         # run "vagrant destroy -f"
         # FileUtils.rm_rf(vagrant_root)
-        # info("Vagrant instance #{instance.to_str} destroyed.")
         # state.delete(:hostname)
         # TODO: stuff here
+
+        execute_recipe(:delete)
+        info("Vagrant instance #{instance.to_str} destroyed.")
       end
 
 #      def verify_dependencies
@@ -176,10 +135,111 @@ module Kitchen
 #      WEBSITE = "http://downloads.vagrantup.com/"
 #      MIN_VER = "1.1.0"
 
-#      def run(cmd, options = {})
-#        cmd = "echo #{cmd}" if config[:dry_run]
-#        run_command(cmd, { :cwd => vagrant_root }.merge(options))
-#      end
+      # This is for the run context
+      class KitchenSink
+        def initialize
+          @events = []
+        end
+
+        attr_reader :events
+
+        def method_missing(method, *args)
+          @events << [ method, *args ]
+        end
+      end
+
+      def get_options
+        options = Hash.new
+        if (config[:guest])
+          options['vm.guest'] = config[:guest]
+        end
+        if (config[:username])
+          options['ssh.username'] = config[:username]
+        end
+        if (config[:ssh_key])
+          options['ssh.private_key_path'] = config[:ssh_key]
+        end
+        return options
+      end
+
+      def get_text_options
+        options = ""
+        # This seems very hard-code-y with specific configure items?  Test this!!!
+        Array(config[:network]).each do |opts|
+          options += "  config.vm.network(:#{opts[0]}, #{opts[1..-1].join(", ")})\n"
+        end
+        options += "  config.vm.synced_folder \".\", \"/vagrant\", disabled: true\n"
+        config[:synced_folders].each do |source, destination, opts|
+          out_source = source.gsub("%{instance_name}", instance.name)
+          out_destination = destination.gsub("%{instance_name}", instance.name)
+          out_opts = (opts.nil? ? '' : ", #{opts}")
+          options += "  config.vm.synced_folder \"#{out_source}\", " +
+            "\"#{out_destination}\"#{out_opts}\n"
+        end
+        if (config[:customize])
+          options += "  config.vm.provider :#{config[:provider]} do |p|\n"
+          config[:customize].each do |key, value|
+            if (config[:provider] == "virtualbox")
+              options += "    p.customize [\"modifyvm\", :id, \"--#{key}\", \"#{value}\"]\n"
+            elsif (config[:provider] == "rackspace")
+              options += "    p.#{key} = \"#{value}\"\n"
+            elsif (config[:provider] =~ /^vmware_/)
+              if (key == :memory)
+                options += "    p.vmx[\"memsize\"] = \"#{value}\"\n"
+              else
+                options += "    p.vmx[\"#{key}\"] = \"#{value}\"\n"
+              end
+            end
+          end
+          options += "  end"
+        end
+        return options
+      end
+
+      def execute_recipe(run_action)
+        # WHY THIS NO WORK FOR MULTIPLE THINGS
+        node = Chef::Node.new
+        node.name 'test'
+        node.automatic[:platform] = 'kitchen_vagrant_metal'
+        node.automatic[:platform_version] = 'kitchen_vagrant_metal'
+        kitchen_sink = KitchenSink.new
+        run_context = Chef::RunContext.new(node, {},
+          Chef::EventDispatch::Dispatcher.new(kitchen_sink))
+        recipe = Chef::Recipe.new('kitchen_vagrant_metal', 'kitchen_vagrant_metal',
+          run_context)
+        box = config[:box]
+        hostname = config[:vm_hostname]
+        box_url = config[:box_url]
+        root = vagrant_root
+        options = {:vagrant_options => get_options, :vagrant_config => get_text_options}
+        puts "---0: #{config}"
+        puts "---1: #{get_options}"
+        puts "---2: #{get_text_options}"
+        recipe.instance_eval do
+          directory root do
+            recursive true
+          end
+          vagrant_cluster root
+
+          directory "#{root}/repo"
+          with_chef_local_server :chef_repo_path => "#{root}/repo"
+
+          vagrant_box box do
+            box_url
+          end
+
+          machine hostname do
+            action run_action
+            provisioner_options options
+          end
+        end
+        Chef::Runner.new(run_context).converge
+      end
+
+      def run(cmd, options = {})
+        cmd = "echo #{cmd}" if config[:dry_run]
+        run_command(cmd, { :cwd => vagrant_root }.merge(options))
+      end
 
 #      def silently_run(cmd)
 #        run_command(cmd,
@@ -192,11 +252,11 @@ module Kitchen
         end
       end
 
-#      def vagrant_root
-#        @vagrant_root ||= File.join(
-#          config[:kitchen_root], %w{.kitchen kitchen-vagrant}, instance.name
-#        )
-#      end
+      def vagrant_root
+        @vagrant_root ||= File.join(
+          config[:kitchen_root], %w{.kitchen kitchen-vagrant-metal}, instance.name
+        )
+      end
 
 #      def create_vagrantfile
 #        return if @vagrantfile_created
