@@ -16,21 +16,18 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-#puts require 'chef/client'
-puts require 'chef/node'
-puts require 'chef/run_context'
-puts require 'chef/event_dispatch/dispatcher'
+require 'chef/node'
+require 'chef/run_context'
+require 'chef/event_dispatch/dispatcher'
 # Already included, but including anyway:
-puts require 'chef/recipe'
-puts require 'chef/runner'
+require 'chef/recipe'
+require 'chef/runner'
 
 # Replace all this with chef_metal require at some point:
-#puts require 'chef_metal/provisioner'
-#puts require 'chef/platform'
-puts require 'chef/providers'
-puts require 'chef/resources'
-puts require 'chef/resource/vagrant_cluster'
-#puts require 'chef/provider/vagrant_cluster'
+require 'chef/providers'
+require 'chef/resources'
+require 'chef_metal/vagrant'
+require 'chef/formatters/doc'
 
 module Kitchen
   module Driver
@@ -204,7 +201,7 @@ module Kitchen
         node.automatic[:platform_version] = 'kitchen_vagrant_metal'
         kitchen_sink = KitchenSink.new
         run_context = Chef::RunContext.new(node, {},
-          Chef::EventDispatch::Dispatcher.new(kitchen_sink))
+          Chef::EventDispatch::Dispatcher.new(Chef::Formatters::Doc.new(STDOUT,STDERR)))
         recipe = Chef::Recipe.new('kitchen_vagrant_metal', 'kitchen_vagrant_metal',
           run_context)
         box = config[:box]
@@ -215,6 +212,8 @@ module Kitchen
         puts "---0: #{config}"
         puts "---1: #{get_options}"
         puts "---2: #{get_text_options}"
+        puts "box: #{box}"
+        puts "box_url: #{box_url}"
         recipe.instance_eval do
           directory root do
             recursive true
@@ -225,12 +224,12 @@ module Kitchen
           with_chef_local_server :chef_repo_path => "#{root}/repo"
 
           vagrant_box box do
-            box_url
+            url box_url
+            provisioner_options options
           end
 
           machine hostname do
             action run_action
-            provisioner_options options
           end
         end
         Chef::Runner.new(run_context).converge
