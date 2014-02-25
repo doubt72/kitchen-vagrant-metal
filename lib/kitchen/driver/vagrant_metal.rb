@@ -200,6 +200,7 @@ module Kitchen
         node.automatic[:platform] = 'kitchen_vagrant_metal'
         node.automatic[:platform_version] = 'kitchen_vagrant_metal'
         kitchen_sink = KitchenSink.new
+        Chef::Config.local_mode = true
         run_context = Chef::RunContext.new(node, {},
           Chef::EventDispatch::Dispatcher.new(Chef::Formatters::Doc.new(STDOUT,STDERR)))
         recipe = Chef::Recipe.new('kitchen_vagrant_metal', 'kitchen_vagrant_metal',
