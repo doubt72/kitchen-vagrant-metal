@@ -40,12 +40,8 @@ module Kitchen
 
     class VagrantMetal < Kitchen::Driver::SSHBase
 
-# Don't think we need any of this here, but we'll deal with this if we do later:
-
+# Might want this?
 #      default_config :customize, { :memory => '256' }
-#      default_config :network, []
-#      default_config :synced_folders, []
-#      default_config :pre_create_command, nil
 
       default_config :provider,
         ENV.fetch('VAGRANT_DEFAULT_PROVIDER', "virtualbox")
@@ -67,49 +63,28 @@ module Kitchen
 #      no_parallel_for :create, :destroy
 
       def create(state)
-        # create_vagrantfile
         run_pre_create_command
-        # cmd = "vagrant up --no-provision"
-        # cmd += " --provider=#{config[:provider]}" if config[:provider]
-        # run cmd
-        # TODO: stuff here
         execute_recipe(:create)
         set_ssh_state(state)
         info("Vagrant instance #{instance.to_str} created.")
       end
 
       def converge(state)
-        # create_vagrantfile
-        # super
-        # TODO: stuff here
         execute_recipe(:create, :converge => true)
         super
       end
 
       def setup(state)
-        # create_vagrantfile
-        # super
-        # TODO: stuff here
         execute_recipe(:create, :converge => true)
         super
       end
 
       def verify(state)
-        # create_vagrantfile
-        # super
-        # TODO: stuff here
         execute_recipe(:create, :converge => true)
         super
       end
 
       def destroy(state)
-        # return if state[:hostname].nil?
-        # create_vagrantfile
-        # @vagrantfile_created = false
-        # run "vagrant destroy -f"
-        # FileUtils.rm_rf(vagrant_root)
-        # state.delete(:hostname)
-        # TODO: stuff here
         execute_recipe(:delete)
         info("Vagrant instance #{instance.to_str} destroyed.")
       end
@@ -117,11 +92,6 @@ module Kitchen
       def verify_dependencies
         check_vagrant_version
       end
-
-#      def instance=(instance)
-#        @instance = instance
-#        resolve_config!
-#      end
 
       def default_box_url
         bucket = config[:provider]
