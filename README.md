@@ -2,7 +2,7 @@
 
 VagrantMetal - a driver for Test Kitchen that wraps around Metal's Vagrant driver.
 
-This is be a gem that will use Metal to execute a driver that Test Kitchen can use.
+This is a gem that uses Metal to execute a driver that Test Kitchen can use.
 I.e., install this gem (and Metal and maybe the Metal Vagrant driver if it ever gets
 split out and dependencies as needed) and use it as the vagrant_metal driver.
 
